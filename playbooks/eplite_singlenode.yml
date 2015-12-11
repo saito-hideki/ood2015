@@ -1,0 +1,60 @@
+# @Author: saitou
+# @Date:   2015-12-06 20:21:48
+# @Last Modified by:   saitou
+# @Last Modified time: 2015-12-08 23:05:40
+# @Usage:
+#   $ ansible-playbook -i ansible_hosts -e "target=N.N.N.N" handson2.yml
+---
+- hosts: eplite
+
+  vars:
+    require:
+      packages:
+        - python-docker-py
+    epmysql:
+      image: "192.168.253.13:5000/student-0003/epmysql:ver1.0"
+      expose:
+        - 3306
+    eplite:
+      image: "192.168.253.13:5000/student-0003/eplite:ver1.0"
+      ports:
+        - "80:80"
+      expose:
+        - 80
+      links:
+        - "epmysql:db"
+      env:
+        FIP: "{{ target }}"
+
+  tasks:
+    - name: install require packages
+      yum:
+        state: latest
+        name: "{{ item }}"
+      with_items: "{{ require.packages }}"
+      sudo: yes
+    - name: start epmysql
+      docker:
+        state: started
+        name: epmysql
+        insecure_registry: True
+        image: "{{ epmysql.image }}"
+        expose: "{{ epmysql.expose }}"
+        tty: True
+      sudo: yes
+    - name: start eplite
+      docker:
+        state: started
+        name: eplite
+        insecure_registry: True
+        image: "{{ eplite.image }}"
+        ports: "{{ eplite.ports }}"
+        expose: "{{ eplite.expose }}"
+        links: "{{ eplite.links }}"
+        env: "{{ eplite.env }}"
+        tty: True
+      sudo: yes
+
+#
+# [EOF]
+#

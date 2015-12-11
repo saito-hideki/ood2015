@@ -1,0 +1,107 @@
+# @Author: saitou
+# @Date:   2015-12-06 19:03:22
+# @Last Modified by:   saitou
+# @Last Modified time: 2015-12-08 23:05:23
+# @Usage:
+#   $ source openrc
+#   $ ansible-playbook -i ansible_hosts -e "hostname=FOO" handson3-1.yml
+---
+- hosts: localhost
+
+  vars:
+    ansible_python_interpreter: /home/centos/handson/bin/python
+    os_auth_url: "{{ lookup('env','OS_AUTH_URL') }}"
+    os_username: "{{ lookup('env','OS_USERNAME') }}"
+    os_password: "{{ lookup('env','OS_PASSWORD') }}"
+    os_project_name: "{{ lookup('env','OS_TENANT_NAME') }}"
+    os_region_name: "{{ lookup('env','OS_REGION_NAME') }}"
+    keypairs:
+      - name: "step-server"
+        public_key_file: "/home/centos/.ssh/id_rsa.pub"
+    secgroups:
+      - name: "eplite"
+        desc: "secgroup for eplite"
+        rules:
+          - protocol: "icmp"
+            port_range_min: -1
+            port_range_max: -1
+            remote_ip_prefix: "0.0.0.0/0"
+          - protocol: "tcp"
+            port_range_min: 22
+            port_range_max: 22
+            remote_ip_prefix: "0.0.0.0/0"
+          - protocol: "tcp"
+            port_range_min: 80
+            port_range_max: 80
+            remote_ip_prefix: "0.0.0.0/0"
+          - protocol: "tcp"
+            port_range_min: 3306
+            port_range_max: 3306
+            remote_ip_prefix: "0.0.0.0/0"
+    servers:
+      - name: "{{ hostname }}"
+        key_name: "step-server"
+        flavor: "m1.small"
+        image: "Docker01"
+        secgroups:
+          - "eplite"
+        nics:
+          - net-name: "work-net"
+        auto_ip: no
+        ext_net: "ext-net_1214"
+        int_net: "work-net"
+
+  tasks:
+    - name: import keypairs
+      os_keypair:
+        state=present
+        name="{{ item.name }}"
+        public_key_file="{{ item.public_key_file }}"
+      with_items: keypairs
+    - name: create security group
+      os_security_group:
+        state=present
+        name="{{ item.name }}"
+        description="{{ item.desc}}"
+      with_items: secgroups
+    - name: add rules to secgroup
+      os_security_group_rule:
+        state=present
+        security_group="{{ item[0].name }}"
+        protocol="{{ item[1].protocol }}"
+        port_range_min="{{ item[1].port_range_min }}"
+        port_range_max="{{ item[1].port_range_max }}"
+        remote_ip_prefix="{{ item[1].remote_ip_prefix }}"
+      with_subelements:
+        - secgroups
+        - rules
+    - name: create servers
+      os_server:
+        state: present
+        timeout: 200
+        auth:
+          auth_url: "{{ os_auth_url }}"
+          username: "{{ os_username }}"
+          password: "{{ os_password }}"
+          project_name: "{{ os_project_name }}"
+        name: "{{ item.name }}"
+        key_name: "{{ item.key_name }}"
+        flavor: "{{ item.flavor }}"
+        image: "{{ item.image }}"
+        security_groups: "{{ item.secgroups }}"
+        nics: "{{ item.nics }}"
+        auto_ip: "{{ item.auto_ip }}"
+      with_items: servers
+    - name: create and assign floating_ip to server
+      quantum_floating_ip:
+        state=present
+        login_username="{{ os_username }}"
+        login_password="{{ os_password }}"
+        login_tenant_name="{{ os_project_name }}"
+        network_name="{{ item.ext_net }}"
+        instance_name="{{ item.name }}"
+        internal_network_name="{{ item.int_net }}"
+      with_items: servers
+#
+# [EOF]
+#

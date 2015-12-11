@@ -1,0 +1,63 @@
+# @Author: saitou
+# @Date:   2015-12-08 16:32:25
+# @Last Modified by:   saitou
+# @Last Modified time: 2015-12-08 23:05:49
+# @Usage:
+#   $ ansible-playbook -i ansible_hosts_eplite handson3-3.yml
+---
+- hosts: all
+
+  vars:
+    require:
+      packages:
+        - python-docker-py
+    epmysql:
+      image: "192.168.253.13:5000/student-0003/epmysql:ver1.0"
+      ports:
+        - "3306:3306"
+      expose:
+        - 3306
+    eplite:
+      image: "192.168.253.13:5000/student-0003/eplite:ver1.0"
+      ports:
+        - "80:80"
+      expose:
+        - 80
+      env:
+        FIP: "{{ eplite_fip }}"
+        DB_PORT_3306_TCP_ADDR: "{{ epmysql_fip }}"
+
+  tasks:
+    - name: install require packages
+      yum:
+        state: latest
+        name: "{{ item }}"
+      with_items: "{{ require.packages }}"
+      sudo: yes
+    - name: start epmysql
+      docker:
+        state: started
+        name: epmysql
+        insecure_registry: True
+        image: "{{ epmysql.image }}"
+        ports: "{{ epmysql.ports }}"
+        expose: "{{ epmysql.expose }}"
+        tty: True
+      sudo: yes
+      when: ansible_hostname == "epmysql"
+    - name: start eplite
+      docker:
+        state: started
+        name: eplite
+        insecure_registry: True
+        image: "{{ eplite.image }}"
+        ports: "{{ eplite.ports }}"
+        expose: "{{ eplite.expose }}"
+        env: "{{ eplite.env }}"
+        tty: True
+      sudo: yes
+      when: ansible_hostname == "eplite"
+
+#
+# [EOF]
+#
