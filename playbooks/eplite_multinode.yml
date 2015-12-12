@@ -3,7 +3,7 @@
 # @Last Modified by:   saitou
 # @Last Modified time: 2015-12-08 23:05:49
 # @Usage:
-#   $ ansible-playbook -i ansible_hosts_eplite handson3-3.yml
+#   $ ansible-playbook -i ansible_hosts eplite_multinode.yml
 ---
 - hosts: all
 
@@ -17,14 +17,14 @@
         - "3306:3306"
       expose:
         - 3306
-    eplite:
+    epapp:
       image: "192.168.253.13:5000/student-0003/eplite:ver1.0"
       ports:
         - "80:80"
       expose:
         - 80
       env:
-        FIP: "{{ eplite_fip }}"
+        FIP: "{{ epapp_fip }}"
         DB_PORT_3306_TCP_ADDR: "{{ epmysql_fip }}"
 
   tasks:
@@ -50,13 +50,13 @@
         state: started
         name: eplite
         insecure_registry: True
-        image: "{{ eplite.image }}"
-        ports: "{{ eplite.ports }}"
-        expose: "{{ eplite.expose }}"
-        env: "{{ eplite.env }}"
+        image: "{{ epapp.image }}"
+        ports: "{{ epapp.ports }}"
+        expose: "{{ epapp.expose }}"
+        env: "{{ epapp.env }}"
         tty: True
       sudo: yes
-      when: ansible_hostname == "eplite"
+      when: ansible_hostname == "epapp"
 
 #
 # [EOF]

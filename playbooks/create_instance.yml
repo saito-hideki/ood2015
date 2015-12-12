@@ -4,7 +4,7 @@
 # @Last Modified time: 2015-12-08 23:05:23
 # @Usage:
 #   $ source openrc
-#   $ ansible-playbook -i ansible_hosts -e "hostname=FOO" handson3-1.yml
+#   $ ansible-playbook -i ansible_hosts -e "hostname=FOO" create_instance.yml
 ---
 - hosts: localhost
 
@@ -79,11 +79,6 @@
       os_server:
         state: present
         timeout: 200
-        auth:
-          auth_url: "{{ os_auth_url }}"
-          username: "{{ os_username }}"
-          password: "{{ os_password }}"
-          project_name: "{{ os_project_name }}"
         name: "{{ item.name }}"
         key_name: "{{ item.key_name }}"
         flavor: "{{ item.flavor }}"
