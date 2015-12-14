@@ -1,0 +1,39 @@
+# @Author: saitou
+# @Date:   2015-12-14 11:07:17
+# @Last Modified by:   saitou
+# @Last Modified time: 2015-12-14 11:39:35
+---
+- hosts: localhost
+
+  vars:
+    ansible_python_interpreter: /home/centos/handson/bin/python
+    os_auth_url: "{{ lookup('env','OS_AUTH_URL') }}"
+    os_username: "{{ lookup('env','OS_USERNAME') }}"
+    os_password: "{{ lookup('env','OS_PASSWORD') }}"
+    os_project_name: "{{ lookup('env','OS_TENANT_NAME') }}"
+    os_region_name: "{{ lookup('env','OS_REGION_NAME') }}"
+    ext_net: "ext-net_1214"
+    instances:
+      - epapp
+      - epmysql
+
+  tasks:
+    - name: deallocate floating_ips
+      quantum_floating_ip:
+        state: absent
+        login_username: "{{ os_username }}"
+        login_password: "{{ os_password }}"
+        login_tenant_name: "{{ os_project_name }}"
+        instance_name: "{{ item }}"
+        network_name: "{{ ext_net }}"
+      with_items: instances
+
+    - name: deallocate instances
+      os_server:
+        state: absent
+        name: "{{ item }}"
+      with_items: instances
+
+#
+# [EOF]
+#
